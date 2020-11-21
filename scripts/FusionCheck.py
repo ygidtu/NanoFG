@@ -81,7 +81,13 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
 
             #SNIFFLES DOES NOT SHOW A CORRECT BND STRUCTURE FOR ALL BREAKPOINTS. FOR THAT REASON, THE STRANDS VALUE IN THE INFO FIELD IS USED TO PRODUCE A CORRECT BND STRUCTURE
             elif vcf_type=="Sniffles":
-                compared_id=re.findall("^\d+", record.INFO["RNAMES"][0])[0]
+                compared_id=re.findall("^\d+", record.INFO["RNAMES"][0])
+
+                if compared_id:
+                    compared_id = compared_id[0]
+                else:
+                        continue
+                
                 if record.INFO["STRANDS"][0][0]=="+":
                     pos1_orientation=False
                 else:
@@ -91,7 +97,7 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
                 else:
                     pos2_orientation=True
             else:
-                cot
+                continue
 
             if compared_id in supporting_reads:
                 original_vcf_info=supporting_reads[compared_id]
