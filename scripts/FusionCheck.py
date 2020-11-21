@@ -75,7 +75,13 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
             chrom2=record.ALT[0].chr
             pos2=record.ALT[0].pos
             if vcf_type=="NanoSV":
-                compared_id=re.findall("^\d+", record.INFO["ALT_READ_IDS"][0])[0]
+                compared_id=re.findall("^\d+", record.INFO["ALT_READ_IDS"][0])
+                
+                if compared_id:
+                    compared_id = compared_id[0]
+                else:
+                    continue
+
                 pos1_orientation=record.ALT[0].orientation
                 pos2_orientation=record.ALT[0].remoteOrientation
 
@@ -86,7 +92,7 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
                 if compared_id:
                     compared_id = compared_id[0]
                 else:
-                        continue
+                    continue
                 
                 if record.INFO["STRANDS"][0][0]=="+":
                     pos1_orientation=False
