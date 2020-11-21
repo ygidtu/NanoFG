@@ -17,7 +17,6 @@ parser.add_argument('-b', '--bam', required=True, type=str, help='Input bam file
 parser.add_argument('-v', '--vcf', required=True, type=str, help='Input NanoSV vcf file')
 parser.add_argument('-o', '--output_dir', required=True, type=str, help='Output directory for fasta files')
 parser.add_argument('-nc', '--non_coding', action='store_true', help='True lets NanoFG detect fusions with non-coding genes (Not fully tested yet)')
-parser.add_argument('-p', '--proxy', type=str, help='Proxy to use')
 
 args = parser.parse_args()
 
@@ -160,7 +159,7 @@ def create_fasta( chr, start, end, svid, exclude, include ):
 
 ########################################   Main code   ########################################
 
-EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
+EnsemblRestClient=EnsemblRestClient()
 
 logger.info("query from biomart")
 ### DOWNLOAD BASIC GENE INFORMATION FROM ENSEMBL (ID, CHROMOSOME, POSITION, STRAND, BIOTYPE)

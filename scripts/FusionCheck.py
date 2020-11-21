@@ -16,6 +16,8 @@ from difflib import SequenceMatcher
 import copy
 import re
 
+from config import REST_ENSEMBL
+
 parser = argparse.ArgumentParser()
 parser = argparse.ArgumentParser(description='Input parameters for NanoFG.')
 parser.add_argument('-v', '--vcf', type=str, help='Input NanoSV vcf file', required=True)
@@ -24,7 +26,6 @@ parser.add_argument('-fo', '--fusion_output', type=str, help='Fusion gene info o
 parser.add_argument('-o', '--output', type=str, help='Fusion gene annotated vcf file', required=True)
 parser.add_argument('-p', '--pdf', type=str, help='Fusion gene pdf file', required=True)
 parser.add_argument('-nc', '--non_coding', action='store_true', help='True lets NanoFG detect fusions with non-coding genes (Not fully tested yet)')
-parser.add_argument('--proxy', type=str, help='Proxy to use')
 
 args = parser.parse_args()
 ########################################   Read in the vcf and perform all fusion check steps for each record in the vcf   ########################################
@@ -217,11 +218,10 @@ def alt_convert( record ):
 
 #############################################   Gather all information about genes that overlap with a single breakend   #############################################
 def ensembl_annotation(CHROM, POS):
-    server='http://grch37.rest.ensembl.org'
     endpoint="/overlap/region/human/"+str(CHROM)+":"+str(POS)+"-"+str(POS)
     headers={"Content-Type" : "application/json"}
     params={"feature": "transcript"}
-    genes_data=EnsemblRestClient.perform_rest_action(server, endpoint, headers, params)
+    genes_data=EnsemblRestClient.perform_rest_action(REST_ENSEMBL, endpoint, headers, params)
 
     transcript_ccds={}
     unique_genes=[]
@@ -240,7 +240,7 @@ def ensembl_annotation(CHROM, POS):
         #gene_id=hit
         endpoint="/lookup/id/"+str(gene_id)
         params={"expand": "1"}
-        gene_info=EnsemblRestClient.perform_rest_action(server, endpoint, headers, params)
+        gene_info=EnsemblRestClient.perform_rest_action(REST_ENSEMBL, endpoint, headers, params)
         ensembl_info={}
         ensembl_info["Gene_id"]=gene_info["id"]
         ensembl_info["Gene_name"]=gene_info["display_name"]
@@ -684,10 +684,9 @@ def breakpoint_annotation(Record, Breakend1, Breakend2, Orientation1, Orientatio
 
 #################################   Gather information about the domains of the genes involved in the fusion   #########################################
 def get_domains(protein_id, coding_exons, relative_length, intron_relative_length):
-    server='http://grch37.rest.ensembl.org'
     endpoint="/overlap/translation/"+protein_id
     headers={"Content-Type" : "application/json"}
-    ensembl_domains=EnsemblRestClient.perform_rest_action(server, endpoint, headers)
+    ensembl_domains=EnsemblRestClient.perform_rest_action(REST_ENSEMBL, endpoint, headers)
 
     domain_layers=[[] for n in range(12)]
     cds_start=coding_exons["rel_pos"][0][0]
@@ -1140,6 +1139,6 @@ VCF_OUTPUT=args.output
 INFO_OUTPUT=args.fusion_output
 ORIGINAL_VCF=args.original_vcf
 PDF=args.pdf
-EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
+EnsemblRestClient=EnsemblRestClient()
 parse_vcf(VCF_IN, VCF_OUTPUT, INFO_OUTPUT, PDF, ORIGINAL_VCF)
 print("End:", datetime.datetime.now())

@@ -6,6 +6,7 @@ import json
 import time
 import sys
 from EnsemblRestClient import EnsemblRestClient
+from config import REST_ENSEMBL
 
 parser = argparse.ArgumentParser()
 parser = argparse.ArgumentParser(description='Put here a description.')
@@ -14,7 +15,7 @@ parser.add_argument('-d', '--directory', required=True, type=str, help='Path to 
 parser.add_argument('-o', '--offset', default=0, type=int, help='Offset [default: 0]')
 parser.add_argument('-f', '--flank', default=200, type=int, help='Flank [default: 200]')
 parser.add_argument('-m', '--mask',action='store_true')
-parser.add_argument('--proxy', type=str, help='Proxy to use')
+
 args = parser.parse_args()
 vcf = args.vcf
 directory = args.directory
@@ -26,7 +27,7 @@ mask = args.mask
 def mask_seq( chr, start, end, strand, seq ):
     ext = "/overlap/region/human/"+str(chr)+":"+str(start)+"-"+str(end)+":"+str(strand)+"?feature=variation"
     headers={ "Content-Type" : "application/json"}
-    data=EnsemblRestClient.perform_rest_action(server, ext, headers)
+    data=EnsemblRestClient.perform_rest_action(REST_ENSEMBL, ext, headers)
     masked_seq = seq
 
     for snp in data:
@@ -40,7 +41,7 @@ def mask_seq( chr, start, end, strand, seq ):
 def get_seq(chr, start, end, strand):
     ext = "/info/assembly/homo_sapiens/"+str(chr)
     headers={ "Content-Type" : "application/json"}
-    data=EnsemblRestClient.perform_rest_action(server, ext, headers)
+    data=EnsemblRestClient.perform_rest_action(REST_ENSEMBL, ext, headers)
     chrlength = data['length']
 
     ext = "/sequence/region/human/"+str(chr)+":"+str(start)+"-"+str(end)+":"+str(strand)+""
@@ -51,7 +52,7 @@ def get_seq(chr, start, end, strand):
         sys.stderr.write("\tFailed to get seq, because ENDPOS is too close to END of the chr\n")
         seq = False
     else:
-        data=EnsemblRestClient.perform_rest_action(server, ext, headers)
+        data=EnsemblRestClient.perform_rest_action(REST_ENSEMBL, ext, headers)
         seq = data['seq']
         if mask:
             seq = mask_seq(chr, start, end, strand, seq )
@@ -131,8 +132,8 @@ def alt_convert( record ):
     return( record )
 
 #############################################   RUNNING CODE   #############################################
-EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
-server = "http://grch37.rest.ensembl.org"
+EnsemblRestClient=EnsemblRestClient()
+
 
 with open(vcf, "r") as fusion_vcf:
     vcf_reader = pyvcf.Reader(fusion_vcf)

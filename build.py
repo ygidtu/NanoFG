@@ -6,25 +6,6 @@ from subprocess import check_call
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 
 
-class Config:
-
-    def __init__(self, venv):
-        self.PATH_SV_CALLER = os.path.join(venv, "NanoSV")
-        self.PATH_SAMTOOLS="samtools"
-        self.PATH_MINIMAP2=os.path.join(venv, "minimap2")
-        # self.PATH_LAST_DIR=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/last-921
-        # self.PATH_WTDBG2_DIR=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/wtdbg2_v2.2
-        # self.PATH_HOMO_SAPIENS_REFFASTA=/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.fasta
-        # self.PATH_HOMO_SAPIENS_REFGENOME=/hpc/cog_bioinf/GENOMES/LAST/human_GATK_GRCh37
-        # self.PATH_HOMO_SAPIENS_REFDICT=/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.dict
-        # self.PATH_PRIMER_DESIGN_DIR=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/primer3/
-
-        pass
-
-    def __str__(self):
-        return ""
-
-
 def build_minimap2():
     if not os.path.exists(os.path.join(__dir__, "venv/minimap2-2.17")):
         check_call(f"tar -C venv -xjf softwares/minimap2*.tar.bz2", shell=True, cwd=__dir__)
@@ -57,8 +38,8 @@ if __name__ == '__main__':
         check_call(f"pip install -i https://mirrors.aliyun.com/pypi/simple virtualenv", shell=True)
         check_call(f"virtualenv venv -p python3", cwd=__dir__, shell=True)
 
-    # check_call(f"venv/bin/pip install -i https://mirrors.aliyun.com/pypi/simple certifi chardet matplotlib nltk numpy pysam PyVCF requests pybiomart NanoSV tqdm loguru click", shell=True)
+    check_call(f"venv/bin/pip install -i https://mirrors.aliyun.com/pypi/simple certifi chardet matplotlib nltk numpy pysam PyVCF requests pybiomart NanoSV tqdm loguru click", shell=True)
 
-    # build_minimap2()
-    # build_wtdbg()
-    # build_last()
+    build_minimap2()
+    build_wtdbg()
+    build_last()

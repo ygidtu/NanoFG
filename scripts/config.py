@@ -1,0 +1,1 @@
+REST_ENSEMBL = "http://rest.ensembl.org"

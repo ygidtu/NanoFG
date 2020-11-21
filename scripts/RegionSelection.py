@@ -5,19 +5,20 @@ import datetime
 from EnsemblRestClient import EnsemblRestClient
 import sys
 import re
+from config import REST_ENSEMBL
 
 parser = argparse.ArgumentParser()
 parser = argparse.ArgumentParser(description='Put here a description.')
 parser.add_argument('-b', '--bed', type=str, help='Output bed file', required=True)
 parser.add_argument('-r', '--region', type=str, help='List of genes or regions to select from the bam-file', required=True)
-parser.add_argument('-x', '--proxy', type=str, help='Proxy', required=False)
+
 
 args = parser.parse_args()
 
 bed=args.bed
 selection=args.region
 selection=selection.split(",")
-EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
+EnsemblRestClient=EnsemblRestClient()
 
 ### Create a bed-file that contains all the regions that need to be selected from the full bam-file
 with open(bed, "w") as bed:
@@ -30,8 +31,6 @@ with open(bed, "w") as bed:
             pos2=item.split(":")[1].split("-")[1]
 
         else:
-            server='http://grch37.rest.ensembl.org'
-
             ### If a desired region is given by a ensembl identifier (e.g. ENSG00000141510) or the gene name, the positions are taken from ensembl
             if re.match("^ENS", item):
                 endpoint="/lookup/id/"+item
@@ -41,7 +40,7 @@ with open(bed, "w") as bed:
             headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
             params={"expand": "1"}
 
-            ensembl_request=EnsemblRestClient.perform_rest_action(server, endpoint, headers, params)
+            ensembl_request=EnsemblRestClient.perform_rest_action(REST_ENSEMBL, endpoint, headers, params)
             chrom=str(ensembl_request["seq_region_name"])
             pos1=str(ensembl_request["start"])
             pos2=str(ensembl_request["end"])
