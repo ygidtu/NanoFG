@@ -1,7 +1,9 @@
-import requests
 import json
-import time
 import sys
+import time
+
+import requests
+
 
 class EnsemblRestClient(object):
     def __init__(self, reqs_per_sec=15):

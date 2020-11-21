@@ -1,10 +1,10 @@
-import pysam
-import vcf as pyvcf
 import argparse
-import re
 import copy
+import re
 from multiprocessing import Pool
 
+import pysam
+import vcf as pyvcf
 from tqdm import tqdm
 
 

@@ -1,14 +1,16 @@
 #!/usr/bin/python
 
 import argparse
-import vcf as pyvcf
-import pysam
-import sys
-import datetime
 import copy
-from tqdm import tqdm
+import datetime
+import sys
+
+import pysam
+import vcf as pyvcf
 from loguru import logger
 from pybiomart import Dataset
+from tqdm import tqdm
+
 from EnsemblRestClient import EnsemblRestClient
 
 parser = argparse.ArgumentParser()

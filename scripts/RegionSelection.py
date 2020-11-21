@@ -2,10 +2,11 @@
 
 import argparse
 import datetime
-from EnsemblRestClient import EnsemblRestClient
-import sys
 import re
+import sys
+
 from config import REST_ENSEMBL
+from EnsemblRestClient import EnsemblRestClient
 
 parser = argparse.ArgumentParser()
 parser = argparse.ArgumentParser(description='Put here a description.')

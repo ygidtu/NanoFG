@@ -1,12 +1,13 @@
-import vcf as pyvcf
 import argparse
-import sys
-import requests
 import json
-import time
 import sys
-from EnsemblRestClient import EnsemblRestClient
+import time
+
+import requests
+import vcf as pyvcf
+
 from config import REST_ENSEMBL
+from EnsemblRestClient import EnsemblRestClient
 
 parser = argparse.ArgumentParser()
 parser = argparse.ArgumentParser(description='Put here a description.')

@@ -1,22 +1,24 @@
 #!/usr/bin/python
 
 import argparse
+import copy
 import datetime
-import vcf as pyvcf
-from EnsemblRestClient import EnsemblRestClient
+import re
 import sys
-import nltk
-import numpy as np
+from difflib import SequenceMatcher
+
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib import patches
-from matplotlib import gridspec
+import nltk
+import numpy as np
+import vcf as pyvcf
+from loguru import logger
+from matplotlib import gridspec, patches
 from matplotlib.backends.backend_pdf import PdfPages
-from difflib import SequenceMatcher
-import copy
-import re
 
 from config import REST_ENSEMBL
+from EnsemblRestClient import EnsemblRestClient
+
 
 ########################################   Read in the vcf and perform all fusion check steps for each record in the vcf   ########################################
 def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
@@ -42,9 +44,11 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
                 except:
                     pass
                 ### Use set() to get only unique reads. It is expected that the same read does not support the same breakpoint twice, but it does in WGA data
-                supporting_reads[original_record.ID]=(len(set(original_record.INFO["ALT_READ_IDS"])), len(set(original_record.INFO["REF_READ_IDS_1"]+original_record.INFO["REF_READ_IDS_2"])), original_record.FILTER)
+                ID = ",".join(original_record.INFO["ALT_READ_IDS"])
+                supporting_reads[ID]=(len(set(original_record.INFO["ALT_READ_IDS"])), len(set(original_record.INFO["REF_READ_IDS_1"]+original_record.INFO["REF_READ_IDS_2"])), original_record.FILTER)
             elif original_vcf_type=="Sniffles":
-                supporting_reads[original_record.ID]=(int(original_record.samples[0].data.DV), int(original_record.samples[0].data.DR), original_record.FILTER)
+                ID = ",".join(record.INFO["RNAMES"])
+                supporting_reads[ID]=(int(original_record.samples[0].data.DV), int(original_record.samples[0].data.DR), original_record.FILTER)
 
     with open(vcf, "r") as vcf, open(info_output, "w") as fusion_output, PdfPages(pdf) as output_pdf, open(vcf_output, "w") as vcf_output:
         vcf_reader=pyvcf.Reader(vcf)
@@ -75,24 +79,14 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
             chrom2=record.ALT[0].chr
             pos2=record.ALT[0].pos
             if vcf_type=="NanoSV":
-                compared_id=re.findall("^\d+", record.INFO["ALT_READ_IDS"][0])
-                
-                if compared_id:
-                    compared_id = compared_id[0]
-                else:
-                    continue
-
+                compared_id=",".join(record.INFO["ALT_READ_IDS"])
+    
                 pos1_orientation=record.ALT[0].orientation
                 pos2_orientation=record.ALT[0].remoteOrientation
 
             #SNIFFLES DOES NOT SHOW A CORRECT BND STRUCTURE FOR ALL BREAKPOINTS. FOR THAT REASON, THE STRANDS VALUE IN THE INFO FIELD IS USED TO PRODUCE A CORRECT BND STRUCTURE
             elif vcf_type=="Sniffles":
-                compared_id=re.findall("^\d+", record.INFO["RNAMES"][0])
-
-                if compared_id:
-                    compared_id = compared_id[0]
-                else:
-                    continue
+                compared_id=",".join(record.INFO["RNAMES"])
                 
                 if record.INFO["STRANDS"][0][0]=="+":
                     pos1_orientation=False
@@ -128,7 +122,7 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
             fusions, vcf_fusion_info=breakpoint_annotation(record, breakend1_info, breakend2_info, pos1_orientation, pos2_orientation, original_vcf_info[2], info_output, complex)
             #Produce output
             for fusion in fusions:
-                print(fusion["5'"]["Gene_id"]+"-"+fusion["3'"]["Gene_id"])
+                # print(fusion["5'"]["Gene_id"]+"-"+fusion["3'"]["Gene_id"])
                 if fusion["Fusion_type"]!="Possible promoter fusion":
                     fusion_output.write("\t".join([str(compared_id), fusion["Fusion_type"], ";".join(fusion["Flags"]), fusion["5'"]["Gene_id"]+"-"+fusion["3'"]["Gene_id"] ,fusion["5'"]["Gene_name"],
                     fusion["5'"]["Type"]+" "+str(fusion["5'"]["Rank"])+"-"+str(fusion["5'"]["Rank"]+1), fusion["5'"]["BND"], str(fusion["5'"]["CDS_length"]), str(fusion["5'"]["Original_CDS_length"]),
@@ -346,7 +340,7 @@ def ensembl_annotation(CHROM, POS):
                         exon_info["Start_phase"]="-1"
                         exon_info["End_phase"]="-1"
                         exon_info["CDS_length"]=0
-                    print(args.non_coding, gene_info["biotype"], )
+                    # (args.non_coding, gene_info["biotype"], )
                     phase=exon_info["End_phase"]
                     cds_length+=exon_info["CDS_length"]
                     ensembl_info["Exons"].append(exon_info)
@@ -411,7 +405,7 @@ def breakend_annotation(CHROM, POS, orientation, Info):
             elif POS>gene["CDS_end"]:
                 BND_INFO["Breakpoint_location"]="3'UTR"
             else:
-                print(gene["Transcript_start"], gene["CDS_start"],  POS, gene["CDS_end"], gene["Transcript_end"])
+                logger.warn(" ".join(map(str, [gene["Transcript_start"], gene["CDS_start"],  POS, gene["CDS_end"], gene["Transcript_end"]])))
         else:
             ORIENTATION= not orientation
             if ORIENTATION:
@@ -444,8 +438,8 @@ def breakend_annotation(CHROM, POS, orientation, Info):
             elif POS>gene["CDS_start"]:
                 BND_INFO["Breakpoint_location"]="5'UTR"
             else:
-                print(gene["Transcript_start"], gene["CDS_start"],  POS, gene["CDS_end"], gene["Transcript_end"])
-
+                logger.warn(" ".join(map(str, [gene["Transcript_start"], gene["CDS_start"],  POS, gene["CDS_end"], gene["Transcript_end"]])))
+                
         for idx, sequence in enumerate(gene["Exons"]):
             if gene["Strand"]==1:
                 CHRON_START=sequence["Start"]
