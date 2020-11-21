@@ -4,6 +4,8 @@ import argparse
 import re
 import copy
 
+from tqdm import tqdm
+
 parser = argparse.ArgumentParser()
 parser = argparse.ArgumentParser(description='Input parameters for NanoFG.')
 parser.add_argument('-v', '--vcf', type=str, help='Input NanoSV vcf file', required=True)
@@ -31,10 +33,16 @@ with open(args.vcf, "r") as vcf, open(args.output, "w") as vcf_output:
         sys.exit("Unknown VCF format or re-run sniffle with '-n -1' to get supporting reads")
 
     svs_per_read={}
-    for record in vcf_reader:
+    for record in tqdm(vcf_reader, desc="combining SVs"):
         RECORDS[record.ID]=record
         if vcf_type=="NanoSV":
-            compared_id=re.findall("^\d+", record.INFO["ALT_READ_IDS"][0])[0]
+            compared_id=re.findall("^\d+", record.INFO["ALT_READ_IDS"][0])
+            
+            if compared_id:
+                compared_id = compared_id[0]
+            else:
+                continue
+            
             pos1_orientation=record.ALT[0].orientation
             pos2_orientation=record.ALT[0].remoteOrientation
             ### Use set to remove reads that support the same breakpoint twice. This is most likely a result of WGA (whole genome amplification).
@@ -62,7 +70,7 @@ with open(args.vcf, "r") as vcf, open(args.output, "w") as vcf_output:
     ### Get information on all reads from the bam file
     all_reads={}
     bamfile = pysam.AlignmentFile(args.bam, "rb" )
-    for read in bamfile.fetch(until_eof=True):
+    for read in tqdm(bamfile.fetch(until_eof=True), "Combining SVs iter BAM"):
         if not read.seq == None and not read.is_unmapped:
             if read not in not_unique:
                 not_unique.append(read)

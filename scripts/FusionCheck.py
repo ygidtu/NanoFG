@@ -24,6 +24,7 @@ parser.add_argument('-fo', '--fusion_output', type=str, help='Fusion gene info o
 parser.add_argument('-o', '--output', type=str, help='Fusion gene annotated vcf file', required=True)
 parser.add_argument('-p', '--pdf', type=str, help='Fusion gene pdf file', required=True)
 parser.add_argument('-nc', '--non_coding', action='store_true', help='True lets NanoFG detect fusions with non-coding genes (Not fully tested yet)')
+parser.add_argument('--proxy', type=str, help='Proxy to use')
 
 args = parser.parse_args()
 ########################################   Read in the vcf and perform all fusion check steps for each record in the vcf   ########################################
@@ -1139,6 +1140,6 @@ VCF_OUTPUT=args.output
 INFO_OUTPUT=args.fusion_output
 ORIGINAL_VCF=args.original_vcf
 PDF=args.pdf
-EnsemblRestClient=EnsemblRestClient()
+EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
 parse_vcf(VCF_IN, VCF_OUTPUT, INFO_OUTPUT, PDF, ORIGINAL_VCF)
 print("End:", datetime.datetime.now())

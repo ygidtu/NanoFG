@@ -10,13 +10,14 @@ parser = argparse.ArgumentParser()
 parser = argparse.ArgumentParser(description='Put here a description.')
 parser.add_argument('-b', '--bed', type=str, help='Output bed file', required=True)
 parser.add_argument('-r', '--region', type=str, help='List of genes or regions to select from the bam-file', required=True)
+parser.add_argument('-x', '--proxy', type=str, help='Proxy', required=False)
 
 args = parser.parse_args()
 
 bed=args.bed
 selection=args.region
 selection=selection.split(",")
-EnsemblRestClient=EnsemblRestClient()
+EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
 
 ### Create a bed-file that contains all the regions that need to be selected from the full bam-file
 with open(bed, "w") as bed:

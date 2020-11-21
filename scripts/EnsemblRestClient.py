@@ -4,13 +4,23 @@ import time
 import sys
 
 class EnsemblRestClient(object):
-    def __init__(self, reqs_per_sec=15):
+    def __init__(self, reqs_per_sec=15, proxy=None):
         #self.server = server
         self.reqs_per_sec = reqs_per_sec
         self.req_count = 0
         self.last_req = 0
         self.repeat = 0
         self.req_times=[]
+        self.proxy = proxy
+
+    def __proxy__(self):
+        if self.proxy:
+            return {
+                "http": self.proxy,
+                "https": self.proxy
+            }
+        else:
+            return None
 
     def perform_rest_action(self, server, endpoint, hdrs=None, parameters=None):
         self.repeat += 1
@@ -40,7 +50,12 @@ class EnsemblRestClient(object):
             if len(self.req_times)>=self.reqs_per_sec:
                 del self.req_times[0]
             self.req_times.append(time.time())
-            request = requests.get(server + endpoint, headers=hdrs, params=parameters)
+            request = requests.get(
+                server + endpoint, 
+                headers=hdrs, 
+                params=parameters,
+                proxies=self.__proxy__()
+            )
             request.raise_for_status()
             data = request.json()
             self.req_count += 1

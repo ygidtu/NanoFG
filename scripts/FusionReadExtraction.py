@@ -6,6 +6,8 @@ import pysam
 import sys
 import datetime
 import copy
+from tqdm import tqdm
+from loguru import logger
 from pybiomart import Dataset
 from EnsemblRestClient import EnsemblRestClient
 
@@ -15,6 +17,7 @@ parser.add_argument('-b', '--bam', required=True, type=str, help='Input bam file
 parser.add_argument('-v', '--vcf', required=True, type=str, help='Input NanoSV vcf file')
 parser.add_argument('-o', '--output_dir', required=True, type=str, help='Output directory for fasta files')
 parser.add_argument('-nc', '--non_coding', action='store_true', help='True lets NanoFG detect fusions with non-coding genes (Not fully tested yet)')
+parser.add_argument('-p', '--proxy', type=str, help='Proxy to use')
 
 args = parser.parse_args()
 
@@ -157,18 +160,25 @@ def create_fasta( chr, start, end, svid, exclude, include ):
 
 ########################################   Main code   ########################################
 
-print("Start:", datetime.datetime.now())
+EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
 
-EnsemblRestClient=EnsemblRestClient()
-
+logger.info("query from biomart")
 ### DOWNLOAD BASIC GENE INFORMATION FROM ENSEMBL (ID, CHROMOSOME, POSITION, STRAND, BIOTYPE)
 dataset = Dataset(name='hsapiens_gene_ensembl', host='http://grch37.ensembl.org')
-ensembl_genes = dataset.query(attributes=['ensembl_gene_id', 'chromosome_name','start_position', 'end_position', 'strand', 'gene_biotype'],
-                filters={'chromosome_name': ['1','2','3','4','5','6','7','8','9','10','11','12','13','14',
-                                            '15','16','17','18','19','20','21','22','X','Y','MT']})
+ensembl_genes = dataset.query(
+    attributes=['ensembl_gene_id', 'chromosome_name','start_position', 'end_position', 'strand', 'gene_biotype'],
+    filters={
+        'chromosome_name': [
+            '1','2','3','4','5','6','7','8','9','10','11','12','13','14',
+            '15','16','17','18','19','20','21','22','X','Y','MT'
+         ]
+    }
+)
+
+
 regions=[]
 
-for line in ensembl_genes.iterrows():
+for line in tqdm(ensembl_genes.iterrows(), desc="ensembl genes"):
     index, data = line
     columns=data.tolist()
     regions.append({'id':columns[0], 'chromosome':columns[1], 'start':int(columns[2]), 'end':int(columns[3]), 'strand':int(columns[4]), 'biotype':columns[5]})
@@ -184,7 +194,7 @@ elif "cmdline" in vcf_reader.metadata:
         vcf_type="NanoSV"
 
 ### GO THROUGH EVERY SV IN THE VCF AND DETERMINE IF THE SV PRODUCES A VALID FUSION BETWEEN 2 GENES
-for record in vcf_reader:
+for record in tqdm(vcf_reader, desc="iterover vcf"):
     #CONVERT THE ALT FIELD IN THE VCF TO A BND 'N]]' structure'
     if not isinstance(record.ALT[0], pyvcf.model._Breakend):
         record = alt_convert(record)
@@ -271,5 +281,3 @@ for record in vcf_reader:
         #EXTRACT ALL THE READS THAT SUPPORT THE BREAKPOINT FOR LATER REMAPPING WITH MORE ACCURATE PARAMETERS
         create_fasta(donor_chr, donor_start, donor_end, record.ID, REF_READ_IDS, SUPP_READ_IDS)
         create_fasta(acceptor_chr, acceptor_start, acceptor_end, record.ID, REF_READ_IDS, SUPP_READ_IDS)
-
-print("End:", datetime.datetime.now())

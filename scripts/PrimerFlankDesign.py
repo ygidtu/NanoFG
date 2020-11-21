@@ -14,6 +14,7 @@ parser.add_argument('-d', '--directory', required=True, type=str, help='Path to 
 parser.add_argument('-o', '--offset', default=0, type=int, help='Offset [default: 0]')
 parser.add_argument('-f', '--flank', default=200, type=int, help='Flank [default: 200]')
 parser.add_argument('-m', '--mask',action='store_true')
+parser.add_argument('--proxy', type=str, help='Proxy to use')
 args = parser.parse_args()
 vcf = args.vcf
 directory = args.directory
@@ -130,7 +131,7 @@ def alt_convert( record ):
     return( record )
 
 #############################################   RUNNING CODE   #############################################
-EnsemblRestClient=EnsemblRestClient()
+EnsemblRestClient=EnsemblRestClient(proxy=args.proxy)
 server = "http://grch37.rest.ensembl.org"
 
 with open(vcf, "r") as fusion_vcf:
