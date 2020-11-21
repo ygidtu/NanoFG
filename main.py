@@ -66,7 +66,7 @@ class Config:
         self.BAM_MERGE_OUT=os.path.join(output, "candidate_fusion_genes.bam")
         self.SV_CALLING_OUT=os.path.join(output, "candidate_fusion_genes.vcf")
         self.SV_CALLING_OUT_FILTERED = ""
-        self.VCF_COMPLETE = os.path.join(output, "complex.vcf")
+        self.VCF_COMPLETE = os.path.join(output, "complete.vcf")
 
         self.FUSION_CHECK_VCF_OUTPUT = os.path.join(output, f"{self.name}_FusionGenes.vcf")
         self.FUSION_CHECK_INFO_OUTPUT=os.path.join(output, f"{self.name}_FusionGenesInfo.txt")
@@ -291,11 +291,11 @@ class Utils:
         return config
 
     @classmethod
-    def combine_sv(cls, config: Config, n_jobs:int):
+    def combine_sv(cls, config: Config):
         logger.info("Linking and combining SVs for complex fusion detection")
 
         if not cls.__exists__(config.VCF_COMPLETE):
-            cls.call(f"{PYTHON} {__script__}/CombineSVs.py -v {config.SV_CALLING_OUT_FILTERED} -b {config.BAM_MERGE_OUT} -o {config.VCF_COMPLETE} -p {n_jobs}")
+            cls.call(f"{PYTHON} {__script__}/CombineSVs.py -v {config.SV_CALLING_OUT_FILTERED} -b {config.BAM_MERGE_OUT} -o {config.VCF_COMPLETE}")
         
         cls.call(f"grep -v \"^#\" {config.VCF_COMPLETE} >> {config.SV_CALLING_OUT_FILTERED}")
         return config
@@ -387,7 +387,7 @@ def main(
     else:
         config.BAM_MERGE_OUT = config.BAM
     config = Utils.sv_calling(config, skip_first_calling=skip_first_sv)
-    config = Utils.combine_sv(config, n_jobs=process)
+    config = Utils.combine_sv(config)
     config = Utils.checking_fusion(config, non_coding=non_coding)
     config = Utils.design_primers(config)
     

@@ -1,45 +1,10 @@
 import argparse
 import copy
 import re
-from multiprocessing import Pool
 
 import pysam
 import vcf as pyvcf
 from tqdm import tqdm
-
-
-def process_bam_single_process(args):
-    bamfile, ref = args
-    all_reads = {}
-    for read in bamfile.fetch(config=ref, until_eof=True):
-        if not read.seq == None and not read.is_unmapped:
-            if read not in not_unique:
-                not_unique.append(read)
-                if read.is_reverse:
-                    left_clipped=int(re.findall("\d+", read.cigarstring)[-1])
-                    right_clipped=int(re.findall("\d+", read.cigarstring)[0])
-                    start=read.reference_end
-                    end=read.reference_start
-                    strand="-"
-                else:
-                    left_clipped=int(re.findall("\d+", read.cigarstring)[0])
-                    right_clipped=int(re.findall("\d+", read.cigarstring)[-1])
-                    start=read.reference_start
-                    end=read.reference_end
-                    strand="+"
-
-                alignment_info=[read.query_name, read.reference_name, int(start), int(end) , left_clipped, right_clipped, strand, abs(int(start)-int(end))]
-                if read.query_name not in all_reads:
-                    all_reads[read.query_name]=[alignment_info]
-                else:
-                    compare=copy.deepcopy(all_reads[read.query_name])
-                    for index, alignment in enumerate(compare):
-                        if left_clipped<alignment[4]:
-                            all_reads[read.query_name].insert(index, alignment_info)
-                        elif index+1==len(all_reads[read.query_name]):
-                            all_reads[read.query_name].append(alignment_info)
-
-    return all_reads
 
 
 def main(args):
@@ -67,12 +32,12 @@ def main(args):
             RECORDS[record.ID]=record
             if vcf_type=="NanoSV":
                 compared_id=re.findall("^\d+", record.INFO["ALT_READ_IDS"][0])
-                
+
                 if compared_id:
                     compared_id = compared_id[0]
                 else:
                     continue
-                
+
                 pos1_orientation=record.ALT[0].orientation
                 pos2_orientation=record.ALT[0].remoteOrientation
                 ### Use set to remove reads that support the same breakpoint twice. This is most likely a result of WGA (whole genome amplification).
@@ -101,14 +66,35 @@ def main(args):
         all_reads={}
         bamfile = pysam.AlignmentFile(args.bam, "rb")
 
-        with Pool(arg.process) as p:
-            for x in list(tqdm(
-                p.map(process_bam_single_process, [[bamfile, i] for i in bamfile.references]), 
-                total=len(bamfile.references), desc="Iter BAM"
-            )):
-                all_reads.update(x)
+        for read in bamfile.fetch(until_eof=True):
+            if not read.seq == None and not read.is_unmapped:
+                if read not in not_unique:
+                    not_unique.append(read)
+                    if read.is_reverse:
+                        left_clipped=int(re.findall("\d+", read.cigarstring)[-1])
+                        right_clipped=int(re.findall("\d+", read.cigarstring)[0])
+                        start=read.reference_end
+                        end=read.reference_start
+                        strand="-"
+                    else:
+                        left_clipped=int(re.findall("\d+", read.cigarstring)[0])
+                        right_clipped=int(re.findall("\d+", read.cigarstring)[-1])
+                        start=read.reference_start
+                        end=read.reference_end
+                        strand="+"
+
+                    alignment_info=[read.query_name, read.reference_name, int(start), int(end) , left_clipped, right_clipped, strand, abs(int(start)-int(end))]
+                    if read.query_name not in all_reads:
+                        all_reads[read.query_name]=[alignment_info]
+                    else:
+                        compare=copy.deepcopy(all_reads[read.query_name])
+                        for index, alignment in enumerate(compare):
+                            if left_clipped<alignment[4]:
+                                all_reads[read.query_name].insert(index, alignment_info)
+                            elif index+1==len(all_reads[read.query_name]):
+                                all_reads[read.query_name].append(alignment_info)
         bamfile.close()
-           
+
 
         ### Go through every complex SV, currently take the first reads that supports the complex SV and check orientation
         for complex_sv, reads in complex_reads.items():
