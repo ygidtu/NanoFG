@@ -18,16 +18,6 @@ import re
 
 from config import REST_ENSEMBL
 
-parser = argparse.ArgumentParser()
-parser = argparse.ArgumentParser(description='Input parameters for NanoFG.')
-parser.add_argument('-v', '--vcf', type=str, help='Input NanoSV vcf file', required=True)
-parser.add_argument('-ov', '--original_vcf', type=str, help='Original vcf file', required=True)
-parser.add_argument('-fo', '--fusion_output', type=str, help='Fusion gene info output file', required=True)
-parser.add_argument('-o', '--output', type=str, help='Fusion gene annotated vcf file', required=True)
-parser.add_argument('-p', '--pdf', type=str, help='Fusion gene pdf file', required=True)
-parser.add_argument('-nc', '--non_coding', action='store_true', help='True lets NanoFG detect fusions with non-coding genes (Not fully tested yet)')
-
-args = parser.parse_args()
 ########################################   Read in the vcf and perform all fusion check steps for each record in the vcf   ########################################
 def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
     with open(full_vcf, "r") as original_vcf:
@@ -100,10 +90,13 @@ def parse_vcf(vcf, vcf_output, info_output, pdf, full_vcf):
                     pos2_orientation=False
                 else:
                     pos2_orientation=True
+            else:
+                cot
 
             if compared_id in supporting_reads:
                 original_vcf_info=supporting_reads[compared_id]
-
+            else:
+                continue
 
             #Gather all ENSEMBL information on genes that overlap with the BND
             breakend1_annotation=ensembl_annotation(chrom1, pos1)
@@ -1132,13 +1125,22 @@ def visualisation(annotated_breakpoints, original_svid, supporting_reads, pdf):
     pdf.savefig()
     plt.close()
 
-#############################################   RUNNING CODE  #############################################
-print("Start:", datetime.datetime.now())
-VCF_IN=args.vcf
-VCF_OUTPUT=args.output
-INFO_OUTPUT=args.fusion_output
-ORIGINAL_VCF=args.original_vcf
-PDF=args.pdf
-EnsemblRestClient=EnsemblRestClient()
-parse_vcf(VCF_IN, VCF_OUTPUT, INFO_OUTPUT, PDF, ORIGINAL_VCF)
-print("End:", datetime.datetime.now())
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Input parameters for NanoFG.')
+    parser.add_argument('-v', '--vcf', type=str, help='Input NanoSV vcf file', required=True)
+    parser.add_argument('-ov', '--original_vcf', type=str, help='Original vcf file', required=True)
+    parser.add_argument('-fo', '--fusion_output', type=str, help='Fusion gene info output file', required=True)
+    parser.add_argument('-o', '--output', type=str, help='Fusion gene annotated vcf file', required=True)
+    parser.add_argument('-p', '--pdf', type=str, help='Fusion gene pdf file', required=True)
+    parser.add_argument('-nc', '--non_coding', action='store_true', help='True lets NanoFG detect fusions with non-coding genes (Not fully tested yet)')
+
+    args = parser.parse_args()
+    
+    VCF_IN=args.vcf
+    VCF_OUTPUT=args.output
+    INFO_OUTPUT=args.fusion_output
+    ORIGINAL_VCF=args.original_vcf
+    PDF=args.pdf
+    EnsemblRestClient=EnsemblRestClient()
+    parse_vcf(VCF_IN, VCF_OUTPUT, INFO_OUTPUT, PDF, ORIGINAL_VCF)

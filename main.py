@@ -291,14 +291,13 @@ class Utils:
         return config
 
     @classmethod
-    def combine_sv(cls, config: Config):
+    def combine_sv(cls, config: Config, n_jobs:int):
         logger.info("Linking and combining SVs for complex fusion detection")
 
         if not cls.__exists__(config.VCF_COMPLETE):
-            cls.call(f"{PYTHON} {__script__}/CombineSVs.py -v {config.SV_CALLING_OUT_FILTERED} -b {config.BAM_MERGE_OUT} -o {config.VCF_COMPLETE}")
-
-        if not cls.__exists__(config.SV_CALLING_OUT_FILTERED):
-            cls.call(f"grep -v \"^#\" {config.VCF_COMPLETE} >> {config.SV_CALLING_OUT_FILTERED}")
+            cls.call(f"{PYTHON} {__script__}/CombineSVs.py -v {config.SV_CALLING_OUT_FILTERED} -b {config.BAM_MERGE_OUT} -o {config.VCF_COMPLETE} -p {n_jobs}")
+        
+        cls.call(f"grep -v \"^#\" {config.VCF_COMPLETE} >> {config.SV_CALLING_OUT_FILTERED}")
         return config
 
     @classmethod
@@ -388,7 +387,7 @@ def main(
     else:
         config.BAM_MERGE_OUT = config.BAM
     config = Utils.sv_calling(config, skip_first_calling=skip_first_sv)
-    config = Utils.combine_sv(config)
+    config = Utils.combine_sv(config, n_jobs=process)
     config = Utils.checking_fusion(config, non_coding=non_coding)
     config = Utils.design_primers(config)
     
