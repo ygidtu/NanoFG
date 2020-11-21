@@ -171,7 +171,6 @@ class Utils:
         if cls.__exists__(config.VCF) and not config.VCF_FILTERED:
             config.VCF_FILTERED = cls.vcf_filter(config.VCF)
 
-        config.BAM_MERGE_OUT = "softwares/test.sorted.bam"
         if not cls.__exists__(config.SV_CALLING_OUT) and cls.__exists__(config.BAM_MERGE_OUT):
             try:
                 cls.call(f"{config.SV_CALLER} -s {config.SAMTOOLS} -c {os.path.join(__dir__, 'files/nanosv_last_config.ini')} -t {config.n_jobs} -o {config.SV_CALLING_OUT} {config.BAM_MERGE_OUT}")
@@ -382,11 +381,10 @@ def main(
     config = Utils.handle_selection(config, selection)
     
     if not skip_first_sv:
-        # config = Utils.sv_calling(config)
-        # config = Utils.extract_fusion(config, non_coding=non_coding)
-        # config = Utils.consensus_calling(config)
-        # config = Utils.mapping_fusion(config, use_last=use_last)
-        pass
+        config = Utils.sv_calling(config)
+        config = Utils.extract_fusion(config, non_coding=non_coding)
+        config = Utils.consensus_calling(config)
+        config = Utils.mapping_fusion(config, use_last=use_last)
     else:
         config.BAM_MERGE_OUT = config.BAM
     config = Utils.sv_calling(config, skip_first_calling=skip_first_sv)
