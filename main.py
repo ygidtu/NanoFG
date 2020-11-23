@@ -81,6 +81,26 @@ class Config:
         self.PRIMER_DESIGN_PSR='100-200'
         self.PRIMER_DESIGN_FLANK='200'
 
+    def __str__(self):
+        params = {
+            "name": self.name,
+            "FASTQ": self.FASTQ,
+            "BAM": self.BAM,
+            "REFFASTA": self.REFFASTA,
+            "LAST_GENOME": self.REFGENOME,
+            "REFDICT": self.REFDICT,
+            "SV_CALLER": self.SV_CALLER,
+            "SAMTOOLS": self.SAMTOOLS,
+            "MINIMAP2": self.MINIMAP2,
+            "LAST": self.LAST_DIR,
+            "WTDBG2": self.WTDBG2_DIR,
+            "PRIMER_DESIGN": self.PRIMER_DESIGN_DIR,
+            "VCF": self.VCF
+        }
+
+        msg = [f"{k} - {v}" for k, v in params.items()]
+        return "\n".join(msg)
+
     @property
     def temp(self):
         return [
@@ -180,6 +200,7 @@ class Utils:
             config.VCF_FILTERED = cls.vcf_filter(config.VCF)
 
         if not cls.__exists__(config.SV_CALLING_OUT) and cls.__exists__(config.BAM_MERGE_OUT):
+            logger.info("SV CALLING on merged BAM")
             try:
                 cls.call(f"{config.SV_CALLER} -s {config.SAMTOOLS} -c {os.path.join(__dir__, 'files/nanosv_last_config.ini')} -t {config.n_jobs} -o {config.SV_CALLING_OUT} {config.BAM_MERGE_OUT}")
             except CalledProcessError as err:
@@ -387,7 +408,7 @@ def main(
         name=name,
         n_jobs=process
     )
-
+    logger.info(str(config))
     config = Utils.minimap_mapping(config)
     config = Utils.handle_selection(config, selection)
 
