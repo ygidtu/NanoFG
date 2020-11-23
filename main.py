@@ -81,8 +81,16 @@ class Config:
         self.PRIMER_DESIGN_PSR='100-200'
         self.PRIMER_DESIGN_FLANK='200'
 
-        pass
-
+    @property
+    def temp(self):
+        return [
+            self.VCF_FILTERED,
+            self.CANDIDATE_DIR,
+            self.BAM_MERGE_OUT,
+            self.BAM_MERGE_OUT + ".bai",
+            self.SV_CALLING_OUT,
+            self.SV_CALLING_OUT_FILTERED,
+        ]
 
 class Utils:
 
@@ -123,7 +131,7 @@ class Utils:
         else:
             logger.info("Skip mapping")
         return config
-        
+
     @classmethod
     def handle_selection(cls, config: Config, selection=None):
 
@@ -149,7 +157,7 @@ class Utils:
 
                         for rec in r.fetch(config=line[0], start=int(line[1]), end=int(end[2])):
                             w.write(rec)
-        
+
         pysam.sort("-o", config.REGION_SELECTION_BAM_OUTPUT, config.REGION_SELECTION_BAM_OUTPUT + ".unsorted")
         pysam.index(config.REGION_SELECTION_BAM_OUTPUT)
 
@@ -211,7 +219,7 @@ class Utils:
 
         if non_coding:
             cmd = f"{cmd} -nc true"
-                
+
         try:
             cls.call(cmd)
         except CalledProcessError as err:
@@ -234,8 +242,8 @@ class Utils:
                     cls.call(f"{config.WTDBG2_DIR}/wtpoa-cns -t {config.n_jobs} -i {prefix}.ctg.lay.gz -fo {prefix}.ctg.fa", verbose=verbose)
                 except CalledProcessError as err:
                     logger.error(err)
-                    
-                if cls.__exists__(f"{prefix}.ctg.fa"):                
+
+                if cls.__exists__(f"{prefix}.ctg.fa"):
                     cls.call(f"sed -i \"s/>ctg/>${SVID}_ctg/g\" {prefix}.ctg.fa")
         else:
             logger.info("Skip consensus")
@@ -279,7 +287,7 @@ class Utils:
                     with pysam.AlignmentFile(f) as r:
                         for rec in r:
                             w.write(rec)
-            
+
             template.close()
 
             pysam.sort("-o", config.BAM_MERGE_OUT, config.BAM_MERGE_OUT + ".unsorted")
@@ -296,28 +304,32 @@ class Utils:
 
         if not cls.__exists__(config.VCF_COMPLETE):
             cls.call(f"{PYTHON} {__script__}/CombineSVs.py -v {config.SV_CALLING_OUT_FILTERED} -b {config.BAM_MERGE_OUT} -o {config.VCF_COMPLETE}")
-        
-        cls.call(f"grep -v \"^#\" {config.VCF_COMPLETE} >> {config.SV_CALLING_OUT_FILTERED}")
+
+        try:
+            cls.call(f"grep -v \"^#\" {config.VCF_COMPLETE} >> {config.SV_CALLING_OUT_FILTERED}")
+        except CalledProcessError as err:
+            logger.warning(err)
         return config
 
     @classmethod
     def checking_fusion(cls, config: Config, non_coding:bool):
         try:
             cmd = f"{PYTHON} {__script__}/FusionCheck.py -ov {config.VCF} -o {config.FUSION_CHECK_VCF_OUTPUT} -fo {config.FUSION_CHECK_INFO_OUTPUT} -p {config.FUSION_CHECK_PDF_OUTPUT} -v {config.SV_CALLING_OUT_FILTERED} {'-nc' if non_coding else ''}"
-            
+
             cls.call(cmd)
         except CalledProcessError as err:
             logger.error("!!! FUSION CHECK NOT CORRECTLY COMPLETED... exiting")
             exit(err)
+        return config
 
     @classmethod
     def design_primers(cls, config: Config):
+        primer_temp = os.path.join(config.PRIMER_DIR, "tmp")
         try:
             cmd = f"{PYTHON} {__script__}/PrimerFlankDesign.py -v {FUSION_CHECK_VCF_OUTPUT} -d {PRIMER_DIR} -f {PRIMER_DESIGN_FLANK}"
 
             cls.call(cmd)
 
-            primer_temp = os.path.join(config.PRIMER_DIR, "tmp")
             os.path.makedirs(primer_temp, exist_ok=True)
 
             for fa in glob(os.path.join(config.PRIMER_DIR, "*.fasta")):
@@ -358,8 +370,8 @@ class Utils:
 @click.option("--not-filter", is_flag=True, default=False, help="Don't filter out all non-PASS SVs", show_default=True)
 @click.option("--skip-first-sv", is_flag=True, default=False, help="If input bam is consensus then skip the processes before calling consensus", show_default=True)
 def main(
-    input_file: str, reference: str, ref_dict: str, last_genome: str, 
-    name: str, process: int, use_last: str, non_coding: bool, not_filter: bool, 
+    input_file: str, reference: str, ref_dict: str, last_genome: str,
+    name: str, process: int, use_last: str, non_coding: bool, not_filter: bool,
     skip_first_sv: bool, selection: str, output: str
 ):
     if not ref_dict:
@@ -378,7 +390,7 @@ def main(
 
     config = Utils.minimap_mapping(config)
     config = Utils.handle_selection(config, selection)
-    
+
     if not skip_first_sv:
         config = Utils.sv_calling(config)
         config = Utils.extract_fusion(config, non_coding=non_coding)
@@ -390,7 +402,7 @@ def main(
     config = Utils.combine_sv(config)
     config = Utils.checking_fusion(config, non_coding=non_coding)
     config = Utils.design_primers(config)
-    
+
 
 if __name__ == '__main__':
     main()
